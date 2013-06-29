@@ -17,46 +17,25 @@ class Boot extends Configuration with Encoder with Util {
 
   def boot(system: ActorSystem): Unit = {
     //system.actorOf(Props(new LoggingActor(logger)))
-    system.actorOf(SProps {
-      spore {
-        val l = this.logger
-        () => new LoggingActor(l)
-      }
-    })
+    system.actorOf(SProps(() => new LoggingActor(capture(logger))))
 
     def errLogger(str: String) = Console.err.println(str)
 
     //system.actorOf(Props(new LoggingActor(errLogger)))
-    system.actorOf(SProps {
-      spore {
-        val e = errLogger _
-        () => new LoggingActor(e)
-      }
-    })
+    system.actorOf(SProps(() => new LoggingActor(capture(errLogger _))))
 
     val initialValue = 42
     //system.actorOf(Props(new OneShotActor(initialValue, Helper.nextRandom())))
-    system.actorOf(SProps {
-      spore {
-        // I tried the code below first but imagined spores checking complained
-        // that `OneShotActor` is captured from the environment.
-        // val i = initialValue
-        // () => new OneShotActor(i, Helper.nextRandom())
-        //
-        // Fortunately, I was able to fix it:
 
-        val actorCons = new this.OneShotActor(initialValue, _: Int)
-        () => actorCons(Helper.nextRandom())
-      }
-    })
+    // I tried the code below first but imagined spores checking complained
+    // that `OneShotActor` is captured from the environment.
+    // system.actorOf(SProps(() => new OneShotActor(capture(initialValue), Helper.nextRandom())))
+    //
+    // Fortunately, I was able to fix it:
+    system.actorOf(SProps(() => capture(new OneShotActor(initialValue, _: Int))(Helper.nextRandom())))
 
     //system.actorOf(Props(new ElementInspactor(Text("test"))))
-    system.actorOf(SProps {
-      spore {
-        val textElement = this.Text("test")
-        () => new ElementInspactor(textElement)
-      }
-    })
+    system.actorOf(SProps(() => new ElementInspactor(capture(this.Text("test")))))
 
     // Boot should go out of scope here, and be eligible for GC
   }
